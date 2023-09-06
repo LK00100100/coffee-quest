@@ -1,18 +1,34 @@
 import * as Phaser from "phaser";
 
 export default class GameScene extends Phaser.Scene {
-  keyW: Phaser.Input.Keyboard.Key;
-  keyA: Phaser.Input.Keyboard.Key;
-  keyS: Phaser.Input.Keyboard.Key;
-  keyD: Phaser.Input.Keyboard.Key;
+  private keyW: Phaser.Input.Keyboard.Key;
+  private keyA: Phaser.Input.Keyboard.Key;
+  private keyS: Phaser.Input.Keyboard.Key;
+  private keyD: Phaser.Input.Keyboard.Key;
+
+  private gameText!: Phaser.GameObjects.Text; //any messages for the player to read.
 
   constructor() {
     super("GameScene");
   }
 
-  preload() {}
+  preload() {
+    this.load.tilemapCSV("map", "assets/tiles.csv");
+    this.load.image("tiles", "assets/tiles.png");
+  }
 
   create() {
+    const map = this.make.tilemap({
+      key: "map",
+      tileWidth: 32,
+      tileHeight: 32,
+    });
+    const tileset = map.addTilesetImage("tiles");
+    const layer = map.createLayer(0, tileset, 0, 0); // layer index, tileset, x, y
+    layer.skipCull = true;
+
+    this.gameText = this.add.text(10, 10, "test text");
+
     /**
      * keyboard
      */
@@ -20,25 +36,30 @@ export default class GameScene extends Phaser.Scene {
     this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
-
-    console.log("reee");
   }
 
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keyW)) {
-      console.log("just down W");
+      this.setGameText("w");
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keyA)) {
-      console.log("just down A");
+      this.setGameText("A");
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keyS)) {
-      console.log("just down S");
+      this.setGameText("S");
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.keyD)) {
-      console.log("just down D");
+      this.setGameText("D");
     }
+  }
+
+  /**
+   * @param newText
+   */
+  setGameText(newText: string) {
+    this.gameText.text = newText;
   }
 }
