@@ -14,7 +14,13 @@ export default class GameScene extends Phaser.Scene {
 
   private layer: Phaser.Tilemaps.TilemapLayer;
 
+  private beans;
+
+  private numBeansCollected;
+
   private readonly PLAYER_SPEED_DEFAULT = 500;
+
+  private readonly IS_DEBUG_MODE = true;
 
   constructor() {
     super("GameScene");
@@ -27,6 +33,8 @@ export default class GameScene extends Phaser.Scene {
 
     //people
     this.load.image("man", "assets/man.png");
+
+    this.load.image("bean", "assets/bean.png");
   }
 
   create() {
@@ -42,10 +50,14 @@ export default class GameScene extends Phaser.Scene {
     this.layer = this.map.createLayer(0, tileset, 0, 0); // layer index, tileset, x, y
     this.layer.skipCull = true;
 
+    console.dir(this.layer);
+
     // Or, you can set collision on all indexes within an array
     this.map.setCollisionBetween(0, 15);
 
-    //this.showCollision();
+    if (this.IS_DEBUG_MODE) {
+      this.showCollision();
+    }
 
     this.gameText = this.add.text(10, 10, "test text");
 
@@ -61,6 +73,15 @@ export default class GameScene extends Phaser.Scene {
      * person
      */
     this.man = this.physics.add.sprite(48, 272, "man");
+
+    /**
+     * beans
+     */
+    this.beans = [];
+    this.beans.push(this.physics.add.sprite(80, 272, "bean"));
+    this.beans.push(this.physics.add.sprite(80, 80, "bean"));
+
+    this.numBeansCollected = 0;
 
     /**
      * camera
@@ -99,6 +120,15 @@ export default class GameScene extends Phaser.Scene {
 
     //  Collide player against the tilemap layer
     this.physics.collide(this.man, this.layer);
+
+    // man hits bean
+    this.physics.world.overlap(
+      this.man,
+      this.beans,
+      this.pickUpBean,
+      null,
+      this,
+    );
   }
 
   /**
@@ -118,5 +148,18 @@ export default class GameScene extends Phaser.Scene {
 
   private checkIsManMoving(): boolean {
     return this.man.body.velocity.x != 0 || this.man.body.velocity.y != 0;
+  }
+
+  private pickUpBean(
+    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    bean: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+  ) {
+    bean.destroy();
+    this.setGameText("mmm beans...");
+
+    this.numBeansCollected++;
+    if (this.numBeansCollected == this.beans.length) {
+      this.setGameText("You have consumed all the coffee beans.");
+    }
   }
 }
