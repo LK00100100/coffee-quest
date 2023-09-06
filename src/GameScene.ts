@@ -23,7 +23,7 @@ export default class GameScene extends Phaser.Scene {
   preload() {
     //level
     this.load.tilemapCSV("map", "assets/tiles.csv");
-    this.load.image("tiles", "assets/tiles.png");
+    this.load.image("tiles", "assets/tiles2.png");
 
     //people
     this.load.image("man", "assets/man.png");
@@ -38,7 +38,7 @@ export default class GameScene extends Phaser.Scene {
       tileWidth: 32,
       tileHeight: 32,
     });
-    const tileset = this.map.addTilesetImage("tiles");
+    const tileset = this.map.addTilesetImage("tiles", null, 32, 32, 1, 2);
     this.layer = this.map.createLayer(0, tileset, 0, 0); // layer index, tileset, x, y
     this.layer.skipCull = true;
 
