@@ -22,7 +22,7 @@ export default class GameScene extends Phaser.Scene {
 
   private readonly PLAYER_SPEED_DEFAULT = 200;
 
-  private readonly IS_DEBUG_MODE = true;
+  private readonly IS_DEBUG_MODE = false;
 
   private mapHeight: number;
   private mapWidth: number;
@@ -125,7 +125,8 @@ export default class GameScene extends Phaser.Scene {
       tileHeight: 32,
     });
     const tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
-    map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
+    const layer = map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
+    layer.setTint(0xaabbcc);
     //TODO: use correct tile art. generate another matrix that holds wasd data and translates that to tiles
 
     map.setCollisionBetween(0, 15);
@@ -208,24 +209,21 @@ export default class GameScene extends Phaser.Scene {
     }
 
     //make more tiles above
-    if (this.man.y < this.topMap.tileToWorldXY(0, 0).y) {
-      console.log(
-        `generating next layer... topmap : ${
-          this.topMap.tileToWorldXY(0, 0).y
-        }`,
-      );
-      const newTilesY = this.topMap.layer.y - this.mapHeight * 32 - 64;
+    const currentTopY = this.topMap.tileToWorldXY(0, 0).y;
+    if (this.man.y < currentTopY) {
+      console.log(`generating next layer... topmap : ${currentTopY}`);
+      const newTilesY = currentTopY - this.mapHeight * 32;
 
-      let prevTopMap = this.topMap;
-      let nextMap = this.makeTiles(newTilesY);
-      this.topMap = nextMap;
+      const oldMap = this.topMap;
+      const newMap = this.makeTiles(newTilesY);
+      this.topMap = newMap;
 
-      if (this.topMap == this.mapA) {
-        this.mapA = prevTopMap;
-        this.mapB = nextMap;
+      if (oldMap == this.mapA) {
+        this.mapA = oldMap;
+        this.mapB = newMap;
       } else {
-        this.mapA = nextMap;
-        this.mapB = prevTopMap;
+        this.mapA = newMap;
+        this.mapB = oldMap;
       }
     }
   }
