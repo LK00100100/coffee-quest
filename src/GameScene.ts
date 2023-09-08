@@ -6,6 +6,9 @@ export default class GameScene extends Phaser.Scene {
   private keyS: Phaser.Input.Keyboard.Key;
   private keyD: Phaser.Input.Keyboard.Key;
 
+  private keyQ: Phaser.Input.Keyboard.Key;
+  private keyE: Phaser.Input.Keyboard.Key;
+
   private gameText!: Phaser.GameObjects.Text; //any messages for the player to read.
 
   //these are two maps that are placed one on top of the other. ad nauseam
@@ -27,6 +30,8 @@ export default class GameScene extends Phaser.Scene {
   private mapHeight: number;
   private mapWidth: number;
 
+  //TODO: tile-width
+
   constructor() {
     super("GameScene");
   }
@@ -46,8 +51,6 @@ export default class GameScene extends Phaser.Scene {
     this.mapA = this.makeTiles(0, true);
     this.topMap = this.mapA;
 
-    this.gameText = this.add.text(10, 10, "test text");
-
     /**
      * keyboard
      */
@@ -55,6 +58,9 @@ export default class GameScene extends Phaser.Scene {
     this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+    this.keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+    this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     /**
      * person
@@ -77,6 +83,11 @@ export default class GameScene extends Phaser.Scene {
     //this.cameras.main.setBounds(0, 0, 400, 400);
     this.cameras.main.setZoom(1.5);
     this.cameras.main.centerOn(this.mapWidth * 16, this.mapHeight * 32 + 16);
+
+    this.gameText = this.add
+      .text(this.mapWidth * 16 - 60, 112, "test text")
+      .setDepth(100)
+      .setScrollFactor(0);
   }
 
   /**
@@ -100,7 +111,7 @@ export default class GameScene extends Phaser.Scene {
 
       for (let x = 0; x < this.mapWidth; x++) {
         // 16 is space
-        const randTile = Math.floor(Math.random() * 120);
+        const randTile = Math.floor(Math.random() * 200);
         const tileIndex = randTile >= 16 ? 16 : randTile;
 
         row.push(tileIndex);
@@ -126,7 +137,10 @@ export default class GameScene extends Phaser.Scene {
     });
     const tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
     const layer = map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
-    layer.setTint(0xaabbcc);
+
+    const colors = [0xffcccb, 0x90ee90, 0xadd8e6]; //R,G,B
+    const color = colors[Math.floor(Math.random() * 3)];
+    layer.setTint(color);
     //TODO: use correct tile art. generate another matrix that holds wasd data and translates that to tiles
 
     map.setCollisionBetween(0, 15);
@@ -170,6 +184,15 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
+    if (this.keyQ.isDown) {
+      this.setGameText("q");
+      this.cameras.main.zoom -= 0.1;
+    }
+    if (this.keyE.isDown) {
+      this.setGameText("e");
+      this.cameras.main.zoom += 0.1;
+    }
+
     //  Collide man against the tilemap layer
     this.physics.collide(
       this.man,
@@ -208,6 +231,7 @@ export default class GameScene extends Phaser.Scene {
       // );
     }
 
+    //y will goof at -infinity
     //make more tiles above
     const currentTopY = this.topMap.tileToWorldXY(0, 0).y;
     if (this.man.y < currentTopY) {
@@ -225,6 +249,8 @@ export default class GameScene extends Phaser.Scene {
         this.mapA = newMap;
         this.mapB = oldMap;
       }
+
+      this.setGameText("new layer...");
     }
   }
 
