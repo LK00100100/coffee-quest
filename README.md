@@ -1,6 +1,9 @@
 # tomb-of-the-mask-clone
 
-Tomb of the mask clone
+Tomb of the mask clone.
+
+You must code and you need coffee. The coffee machine is broken so you must
+wander the office and consume raw coffee beans for caffeine.
 
 ## Writing Code
 

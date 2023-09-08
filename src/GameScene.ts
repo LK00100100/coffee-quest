@@ -20,7 +20,7 @@ export default class GameScene extends Phaser.Scene {
 
   private readonly PLAYER_SPEED_DEFAULT = 500;
 
-  private readonly IS_DEBUG_MODE = true;
+  private readonly IS_DEBUG_MODE = false;
 
   constructor() {
     super("GameScene");
@@ -41,19 +41,46 @@ export default class GameScene extends Phaser.Scene {
     /**
      * make level
      */
+    const mapData = [];
+
+    const mapHeight = 9;
+    const mapWidth = 12;
+    for (let y = 0; y < mapHeight; y++) {
+      const row = [];
+
+      for (let x = 0; x < mapWidth; x++) {
+        //  Scatter the tiles so we get more mud and less stones
+        const randTile = Math.floor(Math.random() * 50);
+        const tileIndex = randTile >= 16 ? 16 : randTile;
+
+        row.push(tileIndex);
+      }
+
+      //left and right border
+      row[0] = 15;
+      row[mapWidth - 1] = 10;
+
+      mapData.push(row);
+    }
+
+    //last row
+    const tops = new Array(mapWidth - 2).fill(11);
+    mapData.push([6, ...tops, 6]);
+
     this.map = this.make.tilemap({
-      key: "map",
+      data: mapData,
       tileWidth: 32,
       tileHeight: 32,
     });
-    const tileset = this.map.addTilesetImage("tiles", null, 32, 32, 1, 2);
+    const tileset = this.map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
     this.layer = this.map.createLayer(0, tileset, 0, 0); // layer index, tileset, x, y
-    this.layer.skipCull = true;
 
-    console.dir(this.layer);
+    //TODO: use correct tile art
 
     // Or, you can set collision on all indexes within an array
     this.map.setCollisionBetween(0, 15);
+
+    console.dir(this.layer);
 
     if (this.IS_DEBUG_MODE) {
       this.showCollision();
@@ -86,13 +113,17 @@ export default class GameScene extends Phaser.Scene {
     /**
      * camera
      */
-    this.cameras.main.setBounds(0, 0, 400, 400);
+    //this.cameras.main.setBounds(0, 0, 400, 400);
     this.cameras.main.setZoom(1.5);
-    this.cameras.main.centerOn(0, 0);
+    this.cameras.main.centerOn(mapWidth * 16, mapWidth * 16);
   }
 
   update() {
     if (!this.checkIsManMoving()) {
+      //fix rounding errors, or you'll collide in thin hallways
+      this.man.x = Math.round(this.man.x);
+      this.man.y = Math.round(this.man.y);
+
       if (Phaser.Input.Keyboard.JustDown(this.keyW)) {
         this.setGameText("w");
         this.man.setVelocityX(0);
@@ -129,6 +160,15 @@ export default class GameScene extends Phaser.Scene {
       null,
       this,
     );
+
+    //move camera up with man
+    console.log("man.y:" + this.man.y);
+    if (this.man.y < 128) {
+      this.cameras.main.scrollY = this.man.y - 256;
+      console.log(
+        `camera.y: ${this.cameras.main.scrollY} ; man.y: ${this.man.y}`,
+      );
+    }
   }
 
   /**
@@ -155,7 +195,7 @@ export default class GameScene extends Phaser.Scene {
     bean: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
     bean.destroy();
-    this.setGameText("mmm beans...");
+    this.setGameText("mmm coffee beans...");
 
     this.numBeansCollected++;
     if (this.numBeansCollected == this.beans.length) {
