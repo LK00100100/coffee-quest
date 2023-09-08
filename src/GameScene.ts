@@ -23,14 +23,14 @@ export default class GameScene extends Phaser.Scene {
 
   private numBeansCollected;
 
-  private readonly PLAYER_SPEED_DEFAULT = 200;
+  private readonly PLAYER_SPEED_DEFAULT = 400;
 
   private readonly IS_DEBUG_MODE = false;
 
   private mapHeight: number;
   private mapWidth: number;
 
-  //TODO: tile-width
+  //TODO: tile-width and half
 
   constructor() {
     super("GameScene");
@@ -85,7 +85,7 @@ export default class GameScene extends Phaser.Scene {
     this.cameras.main.centerOn(this.mapWidth * 16, this.mapHeight * 32 + 16);
 
     this.gameText = this.add
-      .text(this.mapWidth * 16 - 60, 112, "test text")
+      .text(this.mapWidth * 16 - 50, 112, "test text")
       .setDepth(100)
       .setScrollFactor(0);
   }
@@ -151,6 +151,35 @@ export default class GameScene extends Phaser.Scene {
 
     return map;
   }
+
+  addBeans(map: Phaser.Tilemaps.Tilemap, numBeans: number = 5) {
+    const mapOrigin = map.tileToWorldXY(0, 0);
+
+    let beansAdded = 0;
+    //add beans in empty spaces
+    for (let row = 0; row < this.mapHeight; row++) {
+      for (let col = 0; col < this.mapWidth; col++) {
+        const tile = map.getTileAt(col, row);
+        //space
+        if (tile.index == 16) {
+          const rand = Math.floor(Math.random() * 100);
+          if (rand < 5) {
+            this.beans.push(
+              this.physics.add.sprite(
+                mapOrigin.x + tile.pixelX + 16,
+                mapOrigin.y + tile.pixelY + 16,
+                "bean",
+              ),
+            );
+            beansAdded++;
+          }
+        }
+      }
+    }
+    //HACK: to upper limit
+  }
+
+  removeOldBeans() {}
 
   update() {
     //player controls
@@ -249,8 +278,11 @@ export default class GameScene extends Phaser.Scene {
         this.mapA = newMap;
         this.mapB = oldMap;
       }
-
       this.setGameText("new layer...");
+
+      //add/remove beans
+      this.addBeans(this.topMap, 5);
+      this.removeOldBeans();
     }
   }
 
