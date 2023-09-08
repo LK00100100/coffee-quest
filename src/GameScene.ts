@@ -8,19 +8,24 @@ export default class GameScene extends Phaser.Scene {
 
   private gameText!: Phaser.GameObjects.Text; //any messages for the player to read.
 
-  private map: Phaser.Tilemaps.Tilemap;
+  //these are two maps that are placed one on top of the other. ad nauseam
+  //we only go upwards
+  private mapA: Phaser.Tilemaps.Tilemap;
+  private mapB: Phaser.Tilemaps.Tilemap;
+  private topMap: Phaser.Tilemaps.Tilemap;
 
-  private man: Phaser.Types.Physics.Arcade.ImageWithDynamicBody;
-
-  private layer: Phaser.Tilemaps.TilemapLayer;
+  private man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
   private beans;
 
   private numBeansCollected;
 
-  private readonly PLAYER_SPEED_DEFAULT = 500;
+  private readonly PLAYER_SPEED_DEFAULT = 200;
 
-  private readonly IS_DEBUG_MODE = false;
+  private readonly IS_DEBUG_MODE = true;
+
+  private mapHeight: number;
+  private mapWidth: number;
 
   constructor() {
     super("GameScene");
@@ -38,53 +43,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    /**
-     * make level
-     */
-    const mapData = [];
-
-    const mapHeight = 9;
-    const mapWidth = 12;
-    for (let y = 0; y < mapHeight; y++) {
-      const row = [];
-
-      for (let x = 0; x < mapWidth; x++) {
-        //  Scatter the tiles so we get more mud and less stones
-        const randTile = Math.floor(Math.random() * 50);
-        const tileIndex = randTile >= 16 ? 16 : randTile;
-
-        row.push(tileIndex);
-      }
-
-      //left and right border
-      row[0] = 15;
-      row[mapWidth - 1] = 10;
-
-      mapData.push(row);
-    }
-
-    //last row
-    const tops = new Array(mapWidth - 2).fill(11);
-    mapData.push([6, ...tops, 6]);
-
-    this.map = this.make.tilemap({
-      data: mapData,
-      tileWidth: 32,
-      tileHeight: 32,
-    });
-    const tileset = this.map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
-    this.layer = this.map.createLayer(0, tileset, 0, 0); // layer index, tileset, x, y
-
-    //TODO: use correct tile art
-
-    // Or, you can set collision on all indexes within an array
-    this.map.setCollisionBetween(0, 15);
-
-    console.dir(this.layer);
-
-    if (this.IS_DEBUG_MODE) {
-      this.showCollision();
-    }
+    this.mapA = this.makeTiles(0, true);
+    this.topMap = this.mapA;
 
     this.gameText = this.add.text(10, 10, "test text");
 
@@ -99,7 +59,8 @@ export default class GameScene extends Phaser.Scene {
     /**
      * person
      */
-    this.man = this.physics.add.sprite(48, 272, "man");
+    this.man = this.physics.add.sprite(48, this.mapHeight * 32 - 48, "man");
+    this.man.depth = 10;
 
     /**
      * beans
@@ -115,10 +76,69 @@ export default class GameScene extends Phaser.Scene {
      */
     //this.cameras.main.setBounds(0, 0, 400, 400);
     this.cameras.main.setZoom(1.5);
-    this.cameras.main.centerOn(mapWidth * 16, mapWidth * 16);
+    this.cameras.main.centerOn(this.mapWidth * 16, this.mapHeight * 32 + 16);
+  }
+
+  /**
+   *
+   * @param topY
+   * @returns
+   */
+  makeTiles(
+    topY: number = 0,
+    withFloor: boolean = false,
+  ): Phaser.Tilemaps.Tilemap {
+    /**
+     * make level
+     */
+    const mapData = [];
+
+    this.mapHeight = 16;
+    this.mapWidth = 12;
+    for (let y = 0; y < this.mapHeight; y++) {
+      const row = [];
+
+      for (let x = 0; x < this.mapWidth; x++) {
+        // 16 is space
+        const randTile = Math.floor(Math.random() * 120);
+        const tileIndex = randTile >= 16 ? 16 : randTile;
+
+        row.push(tileIndex);
+      }
+
+      //left and right border
+      row[0] = 15;
+      row[this.mapWidth - 1] = 10;
+
+      mapData.push(row);
+    }
+
+    //last, floor row
+    if (withFloor) {
+      const tops = new Array(this.mapWidth - 2).fill(11);
+      mapData[mapData.length - 1] = [6, ...tops, 6];
+    }
+
+    const map = this.make.tilemap({
+      data: mapData,
+      tileWidth: 32,
+      tileHeight: 32,
+    });
+    const tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
+    map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
+    //TODO: use correct tile art. generate another matrix that holds wasd data and translates that to tiles
+
+    map.setCollisionBetween(0, 15);
+
+    if (this.IS_DEBUG_MODE) {
+      this.showCollision(map);
+    }
+
+    return map;
   }
 
   update() {
+    //player controls
     if (!this.checkIsManMoving()) {
       //fix rounding errors, or you'll collide in thin hallways
       this.man.x = Math.round(this.man.x);
@@ -149,8 +169,20 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    //  Collide player against the tilemap layer
-    this.physics.collide(this.man, this.layer);
+    //  Collide man against the tilemap layer
+    this.physics.collide(
+      this.man,
+      this.mapA.layer.tilemapLayer,
+      this.manTileCollide,
+    );
+
+    if (this.mapB) {
+      this.physics.collide(
+        this.man,
+        this.mapB.layer.tilemapLayer,
+        this.manTileCollide,
+      );
+    }
 
     // man hits bean
     this.physics.world.overlap(
@@ -162,12 +194,39 @@ export default class GameScene extends Phaser.Scene {
     );
 
     //move camera up with man
-    console.log("man.y:" + this.man.y);
-    if (this.man.y < 128) {
-      this.cameras.main.scrollY = this.man.y - 256;
+    const manCanvasY = this.getRelativePositionToCanvas(
+      this.man,
+      this.cameras.main,
+    );
+
+    //move camera up with man
+    if (manCanvasY.y <= 160) {
+      this.cameras.main.scrollY = this.man.y - 208; //TODO: hmmm
+      // console.log(
+      //   `moving up: camera.y: ${this.cameras.main.scrollY} ; manCanvasY: ${manCanvasY.y} ; man.y ${this.man.y}`,
+      // );
+    }
+
+    //make more tiles above
+    if (this.man.y < this.topMap.tileToWorldXY(0, 0).y) {
       console.log(
-        `camera.y: ${this.cameras.main.scrollY} ; man.y: ${this.man.y}`,
+        `generating next layer... topmap : ${
+          this.topMap.tileToWorldXY(0, 0).y
+        }`,
       );
+      const newTilesY = this.topMap.layer.y - this.mapHeight * 32 - 64;
+
+      let prevTopMap = this.topMap;
+      let nextMap = this.makeTiles(newTilesY);
+      this.topMap = nextMap;
+
+      if (this.topMap == this.mapA) {
+        this.mapA = prevTopMap;
+        this.mapB = nextMap;
+      } else {
+        this.mapA = nextMap;
+        this.mapB = prevTopMap;
+      }
     }
   }
 
@@ -181,9 +240,9 @@ export default class GameScene extends Phaser.Scene {
   /**
    * Visualize the colliding tiles
    */
-  private showCollision() {
+  private showCollision(map: Phaser.Tilemaps.Tilemap) {
     const debugGraphics = this.add.graphics();
-    this.map.renderDebug(debugGraphics);
+    map.renderDebug(debugGraphics);
   }
 
   private checkIsManMoving(): boolean {
@@ -201,5 +260,22 @@ export default class GameScene extends Phaser.Scene {
     if (this.numBeansCollected == this.beans.length) {
       this.setGameText("You have consumed all the coffee beans.");
     }
+  }
+
+  private manTileCollide(
+    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    tile: Phaser.Tilemaps.Tile,
+  ) {
+    console.log(`collide tile: ${tile.x},${tile.y} = ${tile.index}`);
+  }
+
+  private getRelativePositionToCanvas(
+    gameObject: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+    camera: Phaser.Cameras.Scene2D.Camera,
+  ) {
+    return {
+      x: (gameObject.x - camera.worldView.x) * camera.zoom,
+      y: (gameObject.y - camera.worldView.y) * camera.zoom,
+    };
   }
 }
