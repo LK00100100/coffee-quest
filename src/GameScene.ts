@@ -19,7 +19,8 @@ export default class GameScene extends Phaser.Scene {
 
   private man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-  private beans;
+  private beans: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  private fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
   private numBeansCollected;
 
@@ -27,10 +28,11 @@ export default class GameScene extends Phaser.Scene {
 
   private readonly IS_DEBUG_MODE = false;
 
-  private mapHeight: number;
-  private mapWidth: number;
+  private levelHeight: number = 16;
+  private levelWidth: number = 12;
 
-  //TODO: tile-width and half
+  private readonly TILE_WIDTH = 32; //tile is square
+  private readonly TILE_HALF_WIDTH = this.TILE_WIDTH / 2;
 
   constructor() {
     super("GameScene");
@@ -44,7 +46,12 @@ export default class GameScene extends Phaser.Scene {
     //people
     this.load.image("man", "assets/man.png");
 
+    //hostiles
     this.load.image("bean", "assets/bean.png");
+    this.load.spritesheet("fire", "assets/fire-ss.png", {
+      frameWidth: 30,
+      frameHeight: 30,
+    });
   }
 
   create() {
@@ -65,27 +72,49 @@ export default class GameScene extends Phaser.Scene {
     /**
      * person
      */
-    this.man = this.physics.add.sprite(48, this.mapHeight * 32 - 48, "man");
+    this.man = this.physics.add.sprite(
+      48,
+      this.levelHeight * this.TILE_WIDTH -
+        (this.TILE_WIDTH + this.TILE_HALF_WIDTH),
+      "man",
+    );
     this.man.depth = 10;
 
     /**
      * beans
      */
     this.beans = [];
-    this.beans.push(this.physics.add.sprite(80, 272, "bean"));
     this.beans.push(this.physics.add.sprite(80, 80, "bean"));
 
     this.numBeansCollected = 0;
+
+    /**
+     * fires
+     */
+    this.fires = [];
+
+    this.anims.create({
+      key: "burn",
+      frames: this.anims.generateFrameNumbers("fire"),
+      frameRate: 16,
+      repeat: -1,
+    });
 
     /**
      * camera
      */
     //this.cameras.main.setBounds(0, 0, 400, 400);
     this.cameras.main.setZoom(1.5);
-    this.cameras.main.centerOn(this.mapWidth * 16, this.mapHeight * 32 + 16);
 
+    // prettier-ignore
+    this.cameras.main.centerOn(
+      this.levelWidth * this.TILE_HALF_WIDTH, //go half way
+      (this.levelHeight * this.TILE_WIDTH) + this.TILE_HALF_WIDTH,
+    );
+
+    // prettier-ignore
     this.gameText = this.add
-      .text(this.mapWidth * 16 - 50, 112, "test text")
+      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 50, 112, "test text")
       .setDepth(100)
       .setScrollFactor(0);
   }
@@ -103,13 +132,10 @@ export default class GameScene extends Phaser.Scene {
      * make level
      */
     const mapData = [];
-
-    this.mapHeight = 16;
-    this.mapWidth = 12;
-    for (let y = 0; y < this.mapHeight; y++) {
+    for (let y = 0; y < this.levelHeight; y++) {
       const row = [];
 
-      for (let x = 0; x < this.mapWidth; x++) {
+      for (let x = 0; x < this.levelWidth; x++) {
         // 16 is space
         const randTile = Math.floor(Math.random() * 200);
         const tileIndex = randTile >= 16 ? 16 : randTile;
@@ -119,23 +145,30 @@ export default class GameScene extends Phaser.Scene {
 
       //left and right border
       row[0] = 15;
-      row[this.mapWidth - 1] = 10;
+      row[this.levelWidth - 1] = 10;
 
       mapData.push(row);
     }
 
     //last, floor row
     if (withFloor) {
-      const tops = new Array(this.mapWidth - 2).fill(11);
+      const tops = new Array(this.levelWidth - 2).fill(11);
       mapData[mapData.length - 1] = [6, ...tops, 6];
     }
 
     const map = this.make.tilemap({
       data: mapData,
-      tileWidth: 32,
-      tileHeight: 32,
+      tileWidth: this.TILE_WIDTH,
+      tileHeight: this.TILE_WIDTH,
     });
-    const tileset = map.addTilesetImage("tiles", null, 32, 32, 1, 2); //margin and spacing for tile bleed
+    const tileset = map.addTilesetImage(
+      "tiles",
+      null,
+      this.TILE_WIDTH,
+      this.TILE_WIDTH,
+      1,
+      2,
+    ); //margin and spacing for tile bleed
     const layer = map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
 
     const colors = [0xffcccb, 0x90ee90, 0xadd8e6]; //R,G,B
@@ -152,17 +185,37 @@ export default class GameScene extends Phaser.Scene {
     return map;
   }
 
-  addBeans(map: Phaser.Tilemaps.Tilemap, numBeans: number = 5) {
+  addBeansAndFire(
+    map: Phaser.Tilemaps.Tilemap,
+    numBeans: number = 5,
+    numFires: number = 3,
+  ) {
     const mapOrigin = map.tileToWorldXY(0, 0);
 
     let beansAdded = 0;
-    //add beans in empty spaces
-    for (let row = 0; row < this.mapHeight; row++) {
-      for (let col = 0; col < this.mapWidth; col++) {
+    //add stuff in empty spaces
+    for (let row = 0; row < this.levelHeight; row++) {
+      for (let col = 0; col < this.levelWidth; col++) {
         const tile = map.getTileAt(col, row);
         //space
         if (tile.index == 16) {
           const rand = Math.floor(Math.random() * 100);
+
+          //add fire
+          if (rand < 3) {
+            const fire = this.physics.add
+              .sprite(
+                mapOrigin.x + tile.pixelX + this.TILE_HALF_WIDTH,
+                mapOrigin.y + tile.pixelY + this.TILE_HALF_WIDTH,
+                "fire",
+              )
+              .play("burn");
+
+            this.fires.push(fire);
+            continue;
+          }
+
+          //add bean
           if (rand < 5) {
             this.beans.push(
               this.physics.add.sprite(
@@ -172,6 +225,7 @@ export default class GameScene extends Phaser.Scene {
               ),
             );
             beansAdded++;
+            continue;
           }
         }
       }
@@ -241,7 +295,16 @@ export default class GameScene extends Phaser.Scene {
     this.physics.world.overlap(
       this.man,
       this.beans,
-      this.pickUpBean,
+      this.manInBean,
+      null,
+      this,
+    );
+
+    // man hits fire
+    this.physics.world.overlap(
+      this.man,
+      this.fires,
+      this.manInFire,
       null,
       this,
     );
@@ -255,17 +318,13 @@ export default class GameScene extends Phaser.Scene {
     //move camera up with man
     if (manCanvasY.y <= 160) {
       this.cameras.main.scrollY = this.man.y - 208; //TODO: hmmm
-      // console.log(
-      //   `moving up: camera.y: ${this.cameras.main.scrollY} ; manCanvasY: ${manCanvasY.y} ; man.y ${this.man.y}`,
-      // );
     }
 
-    //y will goof at -infinity
-    //make more tiles above
+    //if needed, make more tiles above
     const currentTopY = this.topMap.tileToWorldXY(0, 0).y;
-    if (this.man.y < currentTopY) {
+    if (this.man.y < currentTopY + this.TILE_WIDTH * 4) {
       console.log(`generating next layer... topmap : ${currentTopY}`);
-      const newTilesY = currentTopY - this.mapHeight * 32;
+      const newTilesY = currentTopY - this.levelHeight * this.TILE_WIDTH;
 
       const oldMap = this.topMap;
       const newMap = this.makeTiles(newTilesY);
@@ -281,8 +340,10 @@ export default class GameScene extends Phaser.Scene {
       this.setGameText("new layer...");
 
       //add/remove beans
-      this.addBeans(this.topMap, 5);
+      this.addBeansAndFire(this.topMap, 5);
       this.removeOldBeans();
+
+      //y will goof at -infinity
     }
   }
 
@@ -302,20 +363,31 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private checkIsManMoving(): boolean {
+    if (!this.man.visible) return false;
+
     return this.man.body.velocity.x != 0 || this.man.body.velocity.y != 0;
   }
 
-  private pickUpBean(
+  private manInBean(
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     bean: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
     bean.destroy();
-    this.setGameText("mmm coffee beans...");
 
     this.numBeansCollected++;
-    if (this.numBeansCollected == this.beans.length) {
-      this.setGameText("You have consumed all the coffee beans.");
-    }
+
+    this.setGameText(
+      `mmm coffee beans...\nconsumed ${this.numBeansCollected} coffee beans`,
+    );
+  }
+
+  private manInFire(
+    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    fire: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+  ) {
+    man.destroy();
+
+    this.setGameText(`You have died in an office fire.`);
   }
 
   private manTileCollide(
