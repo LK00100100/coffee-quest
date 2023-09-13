@@ -5,7 +5,6 @@ export default class GameScene extends Phaser.Scene {
   private keyA: Phaser.Input.Keyboard.Key;
   private keyS: Phaser.Input.Keyboard.Key;
   private keyD: Phaser.Input.Keyboard.Key;
-
   private keyQ: Phaser.Input.Keyboard.Key;
   private keyE: Phaser.Input.Keyboard.Key;
 
@@ -21,6 +20,7 @@ export default class GameScene extends Phaser.Scene {
 
   private beans: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  private coworkers: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
   private numBeansCollected;
 
@@ -46,9 +46,16 @@ export default class GameScene extends Phaser.Scene {
     //people
     this.load.image("man", "assets/man.png");
 
-    //hostiles
+    //powerups
     this.load.image("bean", "assets/bean.png");
+
+    //hostiles
     this.load.spritesheet("fire", "assets/fire-ss.png", {
+      frameWidth: 30,
+      frameHeight: 30,
+    });
+
+    this.load.spritesheet("coworker", "assets/coworker-ss.png", {
       frameWidth: 30,
       frameHeight: 30,
     });
@@ -96,6 +103,18 @@ export default class GameScene extends Phaser.Scene {
     this.anims.create({
       key: "burn",
       frames: this.anims.generateFrameNumbers("fire"),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    /**
+     * hostiles
+     */
+    this.coworkers = [];
+
+    this.anims.create({
+      key: "angry",
+      frames: this.anims.generateFrameNumbers("coworker"),
       frameRate: 16,
       repeat: -1,
     });
@@ -185,7 +204,7 @@ export default class GameScene extends Phaser.Scene {
     return map;
   }
 
-  addBeansAndFire(
+  addStuffInMap(
     map: Phaser.Tilemaps.Tilemap,
     numBeans: number = 5,
     numFires: number = 3,
@@ -200,6 +219,26 @@ export default class GameScene extends Phaser.Scene {
         //space
         if (tile.index == 16) {
           const rand = Math.floor(Math.random() * 100);
+
+          //add angry coworker
+          if (rand <= 1) {
+            const coworker = this.physics.add
+              .sprite(
+                mapOrigin.x + tile.pixelX + this.TILE_HALF_WIDTH,
+                mapOrigin.y + tile.pixelY + this.TILE_HALF_WIDTH,
+                "coworker",
+              )
+              .play("angry");
+
+            const randDirection = Math.floor(Math.random() * 2);
+            const velocity = randDirection == 0 ? -50 : 50;
+
+            coworker.setVelocityX(velocity);
+            coworker.setData("velocity", velocity);
+
+            this.coworkers.push(coworker);
+            continue;
+          }
 
           //add fire
           if (rand < 3) {
@@ -237,7 +276,7 @@ export default class GameScene extends Phaser.Scene {
 
   update() {
     //player controls
-    if (!this.checkIsManMoving()) {
+    if (this.isManReadyToMove()) {
       //fix rounding errors, or you'll collide in thin hallways
       this.man.x = Math.round(this.man.x);
       this.man.y = Math.round(this.man.y);
@@ -283,13 +322,14 @@ export default class GameScene extends Phaser.Scene {
       this.manTileCollide,
     );
 
-    if (this.mapB) {
-      this.physics.collide(
-        this.man,
-        this.mapB.layer.tilemapLayer,
-        this.manTileCollide,
-      );
-    }
+    // man hits coworker
+    this.physics.world.overlap(
+      this.man,
+      this.coworkers,
+      this.manInCoworker,
+      null,
+      this,
+    );
 
     // man hits bean
     this.physics.world.overlap(
@@ -308,6 +348,38 @@ export default class GameScene extends Phaser.Scene {
       null,
       this,
     );
+
+    //TODO: could use map array
+    //coworker hits tiles
+    this.physics.collide(
+      this.coworkers,
+      this.mapA.layer.tilemapLayer,
+      this.coworkerTileCollide,
+    );
+
+    //coworker hits coworker
+    this.physics.world.overlap(
+      this.coworkers,
+      this.coworkers,
+      this.coworkersInCoworkers,
+      null,
+      this,
+    );
+
+    //TODO: remove check
+    if (this.mapB) {
+      this.physics.collide(
+        this.man,
+        this.mapB.layer.tilemapLayer,
+        this.manTileCollide,
+      );
+
+      this.physics.collide(
+        this.coworkers,
+        this.mapB.layer.tilemapLayer,
+        this.coworkerTileCollide,
+      );
+    }
 
     //move camera up with man
     const manCanvasY = this.getRelativePositionToCanvas(
@@ -339,8 +411,8 @@ export default class GameScene extends Phaser.Scene {
       }
       this.setGameText("new layer...");
 
-      //add/remove beans
-      this.addBeansAndFire(this.topMap, 5);
+      //add stuff
+      this.addStuffInMap(this.topMap, 5);
       this.removeOldBeans();
 
       //y will goof at -infinity
@@ -362,10 +434,19 @@ export default class GameScene extends Phaser.Scene {
     map.renderDebug(debugGraphics);
   }
 
-  private checkIsManMoving(): boolean {
+  private isManReadyToMove(): boolean {
     if (!this.man.visible) return false;
 
-    return this.man.body.velocity.x != 0 || this.man.body.velocity.y != 0;
+    return this.man.body.velocity.x == 0 && this.man.body.velocity.y == 0;
+  }
+
+  private manInCoworker(
+    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    coworker: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+  ) {
+    man.destroy();
+
+    this.setGameText(`The coworker has taken your soul.`);
   }
 
   private manInBean(
@@ -395,6 +476,27 @@ export default class GameScene extends Phaser.Scene {
     tile: Phaser.Tilemaps.Tile,
   ) {
     console.log(`collide tile: ${tile.x},${tile.y} = ${tile.index}`);
+  }
+
+  private coworkerTileCollide(
+    coworker: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+    tile: Phaser.Tilemaps.Tile,
+  ) {
+    const oldVelocity = coworker.getData("velocity"); //velocity is set to 0 on collision
+    coworker.setVelocityX(-oldVelocity);
+
+    coworker.setData("velocity", -oldVelocity);
+  }
+
+  private coworkersInCoworkers(
+    coworker1: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+    coworker2: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+  ) {
+    //only set coworker1
+    const oldVelocity = coworker1.getData("velocity"); //velocity is set to 0 on collision
+    coworker1.setVelocityX(-oldVelocity);
+
+    coworker1.setData("velocity", -oldVelocity);
   }
 
   private getRelativePositionToCanvas(
