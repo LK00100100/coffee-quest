@@ -21,6 +21,7 @@ export default class GameScene extends Phaser.Scene {
   private beans: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private coworkers: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  private rats: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
   private numBeansCollected;
 
@@ -44,7 +45,10 @@ export default class GameScene extends Phaser.Scene {
     this.load.image("tiles", "assets/tiles2.png");
 
     //people
-    this.load.image("man", "assets/man.png");
+    this.load.spritesheet("man", "assets/man-ss.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
 
     //powerups
     this.load.image("bean", "assets/bean.png");
@@ -56,6 +60,11 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.load.spritesheet("coworker", "assets/coworker-ss.png", {
+      frameWidth: 30,
+      frameHeight: 30,
+    });
+
+    this.load.spritesheet("rat", "assets/rat-ss.png", {
       frameWidth: 30,
       frameHeight: 30,
     });
@@ -79,6 +88,13 @@ export default class GameScene extends Phaser.Scene {
     /**
      * person
      */
+    this.anims.create({
+      key: "walk",
+      frames: this.anims.generateFrameNumbers("man"),
+      frameRate: 16,
+      repeat: -1,
+    });
+
     this.man = this.physics.add.sprite(
       48,
       this.levelHeight * this.TILE_WIDTH -
@@ -86,6 +102,7 @@ export default class GameScene extends Phaser.Scene {
       "man",
     );
     this.man.depth = 10;
+    this.man.play("walk");
 
     /**
      * beans
@@ -111,10 +128,17 @@ export default class GameScene extends Phaser.Scene {
      * hostiles
      */
     this.coworkers = [];
-
     this.anims.create({
       key: "angry",
       frames: this.anims.generateFrameNumbers("coworker"),
+      frameRate: 16,
+      repeat: -1,
+    });
+
+    this.rats = [];
+    this.anims.create({
+      key: "move",
+      frames: this.anims.generateFrameNumbers("rat"),
       frameRate: 16,
       repeat: -1,
     });
@@ -219,6 +243,20 @@ export default class GameScene extends Phaser.Scene {
         //space
         if (tile.index == 16) {
           const rand = Math.floor(Math.random() * 100);
+
+          //add rat
+          if (rand <= 0) {
+            const rat = this.physics.add
+              .sprite(
+                mapOrigin.x + tile.pixelX + this.TILE_HALF_WIDTH,
+                mapOrigin.y + tile.pixelY + this.TILE_HALF_WIDTH,
+                "rat",
+              )
+              .play("move");
+
+            this.rats.push(rat);
+            continue;
+          }
 
           //add angry coworker
           if (rand <= 1) {
@@ -366,6 +404,15 @@ export default class GameScene extends Phaser.Scene {
       this,
     );
 
+    //coworker hits fire
+    this.physics.world.overlap(
+      this.coworkers,
+      this.fires,
+      this.coworkersInFire,
+      null,
+      this,
+    );
+
     //TODO: remove check
     if (this.mapB) {
       this.physics.collide(
@@ -469,6 +516,13 @@ export default class GameScene extends Phaser.Scene {
     man.destroy();
 
     this.setGameText(`You have died in an office fire.`);
+  }
+
+  private coworkersInFire(
+    coworker: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+    fire: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+  ) {
+    coworker.destroy();
   }
 
   private manTileCollide(
