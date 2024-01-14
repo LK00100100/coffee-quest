@@ -1,11 +1,13 @@
 # tomb-of-the-mask-clone
 
-You are a coder in a big city office.
+You are a coder in a Big City office.
 You must code and you need coffee. The coffee machine is broken so you must
-illegally wander the deep inner bowels of the office and find enough machine parts to
-repair the machine. You must dodge various dangers to achieve your mission.
+illegally wander the deep inner bowels of the office and find enough machine parts to repair the machine. You must dodge various dangers to achieve your mission.
 
 - wsad - move (can't stop)
+- security guard - stops you
+- rats - friendly; scares security.
+- $15 Big City Personal Pizza - temporarily makes you immune to everything.
 
 Inspired by "Tomb of the Mask"
 

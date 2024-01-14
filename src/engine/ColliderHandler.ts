@@ -15,14 +15,20 @@ export default class ColliderHandler {
     this.game.physics.collide(
       this.game.man,
       this.game.mapA.layer.tilemapLayer,
-      this.collideManInTile,
+      this.collideManInTile.bind(this),
+    );
+
+    this.game.physics.collide(
+      this.game.man,
+      this.game.mapB.layer.tilemapLayer,
+      this.collideManInTile.bind(this),
     );
 
     // man hits guard
     this.game.physics.world.overlap(
       this.game.man,
       this.game.guards,
-      this.collideManInGuard,
+      this.collideManInGuard.bind(this),
       null,
       this,
     );
@@ -31,7 +37,16 @@ export default class ColliderHandler {
     this.game.physics.world.overlap(
       this.game.man,
       this.game.screws,
-      this.collideManInScrew,
+      this.collideManInScrew.bind(this),
+      null,
+      this,
+    );
+
+    // man hits pizza
+    this.game.physics.world.overlap(
+      this.game.man,
+      this.game.pizzas,
+      this.collideManInPizza.bind(this),
       null,
       this,
     );
@@ -40,24 +55,29 @@ export default class ColliderHandler {
     this.game.physics.world.overlap(
       this.game.man,
       this.game.fires,
-      this.collideManInFire,
+      this.collideManInFire.bind(this),
       null,
       this,
     );
 
-    //TODO: could use map array
     //guard hits tiles
     this.game.physics.collide(
       this.game.guards,
       this.game.mapA.layer.tilemapLayer,
-      this.collideGuardInTile,
+      this.collideGuardInTile.bind(this),
+    );
+
+    this.game.physics.collide(
+      this.game.guards,
+      this.game.mapB.layer.tilemapLayer,
+      this.collideGuardInTile.bind(this),
     );
 
     //guard hits guard
     this.game.physics.world.overlap(
       this.game.guards,
       this.game.guards,
-      this.collideGuardInGuard,
+      this.collideGuardInGuard.bind(this),
       null,
       this,
     );
@@ -66,25 +86,19 @@ export default class ColliderHandler {
     this.game.physics.world.overlap(
       this.game.guards,
       this.game.fires,
-      this.collideGuardInFire,
+      this.collideGuardInFire.bind(this),
       null,
       this,
     );
 
-    //TODO: remove check
-    if (this.game.mapB) {
-      this.game.physics.collide(
-        this.game.man,
-        this.game.mapB.layer.tilemapLayer,
-        this.collideManInTile,
-      );
-
-      this.game.physics.collide(
-        this.game.guards,
-        this.game.mapB.layer.tilemapLayer,
-        this.collideGuardInTile,
-      );
-    }
+    //guard hits rat
+    this.game.physics.world.overlap(
+      this.game.guards,
+      this.game.rats,
+      this.collideGuardInRat.bind(this),
+      null,
+      this,
+    );
   }
 
   private collideManInGuard(
@@ -109,6 +123,15 @@ export default class ColliderHandler {
     );
   }
 
+  private collideManInPizza(
+    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    pizza: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+  ) {
+    pizza.destroy();
+
+    this.game.setGameText(`mmm bougie $15 Big City personal pizza...`);
+  }
+
   private collideManInFire(
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     fire: Phaser.Types.Physics.Arcade.GameObjectWithBody,
@@ -125,6 +148,13 @@ export default class ColliderHandler {
     guard.destroy();
   }
 
+  private collideGuardInRat(
+    guard: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+    rat: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
+  ) {
+    this.flipGuardDirection(guard);
+  }
+
   collideManInTile(
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     tile: Phaser.Tilemaps.Tile,
@@ -136,12 +166,7 @@ export default class ColliderHandler {
     guard: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
     tile: Phaser.Tilemaps.Tile,
   ) {
-    const oldVelocity = guard.getData("velocity"); //velocity is set to 0 on collision
-    guard.setVelocityX(-oldVelocity);
-
-    guard.flipX = -oldVelocity < 0 ? true : false; //face left : face right
-
-    guard.setData("velocity", -oldVelocity);
+    this.flipGuardDirection(guard);
   }
 
   private collideGuardInGuard(
@@ -149,11 +174,17 @@ export default class ColliderHandler {
     guard2: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
   ) {
     //only set guard1 (it's enough)
-    const oldVelocity = guard1.getData("velocity"); //velocity is set to 0 on collision
-    guard1.setVelocityX(-oldVelocity);
+    this.flipGuardDirection(guard1);
+  }
 
-    guard1.flipX = -oldVelocity < 0 ? true : false; //face left : face right
-
-    guard1.setData("velocity", -oldVelocity);
+  /**
+   * Flip guard horizontally
+   * @param guard -
+   */
+  flipGuardDirection(guard: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
+    const oldVelocity = guard.getData("velocity"); //velocity is set to 0 on collision
+    guard.setVelocityX(-oldVelocity);
+    guard.flipX = -oldVelocity < 0 ? true : false; //face left : face right
+    guard.setData("velocity", -oldVelocity);
   }
 }

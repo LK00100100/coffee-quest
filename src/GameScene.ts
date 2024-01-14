@@ -19,6 +19,7 @@ export default class GameScene extends Phaser.Scene {
 
   public man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
+  public pizzas: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public guards: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
@@ -55,7 +56,7 @@ export default class GameScene extends Phaser.Scene {
     });
 
     //powerups
-    this.load.image("bean", "assets/bean.png");
+    this.load.image("pizza", "assets/pizza.png");
     this.load.image("screw", "assets/screw.png");
 
     //hostiles
@@ -73,10 +74,14 @@ export default class GameScene extends Phaser.Scene {
       frameWidth: 30,
       frameHeight: 30,
     });
+
+    //misc
+    this.load.image("bean", "assets/bean.png");
   }
 
   create() {
     this.mapA = this.makeTiles(0, true);
+    this.mapB = this.makeTiles(-10000, true); //init so we don't null check.
     this.topMap = this.mapA;
 
     /**
@@ -110,11 +115,13 @@ export default class GameScene extends Phaser.Scene {
     this.man.play("walk");
 
     /**
-     * screws
+     * powerups and pickups
      */
     this.screws = [];
 
     this.numScrewsCollected = 0;
+
+    this.pizzas = [];
 
     /**
      * fires
@@ -161,14 +168,14 @@ export default class GameScene extends Phaser.Scene {
 
     // prettier-ignore
     this.gameText = this.add
-      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 50, 112, "test text")
+      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 100, 130, "test text")
       .setDepth(100)
       .setScrollFactor(0);
   }
 
   /**
    *
-   * @param topY
+   * @param topY drawing up starting here.
    * @returns
    */
   makeTiles(
@@ -314,18 +321,21 @@ export default class GameScene extends Phaser.Scene {
   addStuffInMap(
     map: Phaser.Tilemaps.Tilemap,
     numScrews: number = 5,
-    numFires: number = 3,
+    numFires: number = 10,
   ) {
     const mapOrigin = map.tileToWorldXY(0, 0);
 
     let screwsAdded = 0;
+    let firesAdded = 0;
+
     //add stuff in empty spaces
     for (let row = 0; row < this.levelHeight; row++) {
       for (let col = 0; col < this.levelWidth; col++) {
         const tile = map.getTileAt(col, row);
         //space
         if (tile.index == 16) {
-          const rand = Math.floor(Math.random() * 100);
+          //TODO: move utils
+          const rand = Math.floor(Math.random() * 100); //0 - 99
 
           //add rat
           if (rand <= 0) {
@@ -362,8 +372,20 @@ export default class GameScene extends Phaser.Scene {
             continue;
           }
 
-          //add fire
+          //add pizza
           if (rand < 3) {
+            this.pizzas.push(
+              this.physics.add.sprite(
+                mapOrigin.x + tile.pixelX + 16,
+                mapOrigin.y + tile.pixelY + 16,
+                "pizza",
+              ),
+            );
+            continue;
+          }
+
+          //add fire
+          if (firesAdded < numFires && rand < 4) {
             const fire = this.physics.add
               .sprite(
                 mapOrigin.x + tile.pixelX + this.TILE_HALF_WIDTH,
@@ -377,7 +399,7 @@ export default class GameScene extends Phaser.Scene {
           }
 
           //add screw
-          if (rand < 5) {
+          if (screwsAdded < numScrews && rand < 5) {
             this.screws.push(
               this.physics.add.sprite(
                 mapOrigin.x + tile.pixelX + 16,
@@ -443,16 +465,16 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main,
     );
 
-    if (manCanvasY.y <= 400) {
-      this.cameras.main.scrollY = this.man.y - 400; //working jank code
+    if (manCanvasY.y <= 500) {
+      this.cameras.main.scrollY = this.man.y - 470; //working jank code
     }
 
     this.colliderHandler.handleCollision();
 
     //if needed, make more tiles above
     const currentTopY = this.topMap.tileToWorldXY(0, 0).y;
-    if (this.man.y < currentTopY + this.TILE_WIDTH * 4) {
-      console.log(`generating next layer... topmap : ${currentTopY}`);
+    if (this.man.y < currentTopY + this.TILE_WIDTH * 20) {
+      console.log(`generating next ... topmap : ${currentTopY}`);
       const newTilesY = currentTopY - this.levelHeight * this.TILE_WIDTH;
 
       const oldMap = this.topMap;
@@ -466,7 +488,7 @@ export default class GameScene extends Phaser.Scene {
         this.mapA = newMap;
         this.mapB = oldMap;
       }
-      this.setGameText("new layer...");
+      this.setGameText("Another floor...");
 
       //add stuff
       this.addStuffInMap(this.topMap, 5);
