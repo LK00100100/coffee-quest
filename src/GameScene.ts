@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import ColliderHandler from "./engine/ColliderHandler";
 
 export default class GameScene extends Phaser.Scene {
   private keyW: Phaser.Input.Keyboard.Key;
@@ -12,18 +13,18 @@ export default class GameScene extends Phaser.Scene {
 
   //these are two maps that are placed one on top of the other. ad nauseam
   //we only go upwards
-  private mapA: Phaser.Tilemaps.Tilemap;
-  private mapB: Phaser.Tilemaps.Tilemap;
+  public mapA: Phaser.Tilemaps.Tilemap;
+  public mapB: Phaser.Tilemaps.Tilemap;
   private topMap: Phaser.Tilemaps.Tilemap;
 
-  private man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+  public man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-  private screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
-  private fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
-  private coworkers: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
-  private rats: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  public screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  public fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  public guards: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  public rats: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
-  private numScrewsCollected;
+  public numScrewsCollected;
 
   private readonly PLAYER_SPEED_DEFAULT = 400;
 
@@ -35,8 +36,11 @@ export default class GameScene extends Phaser.Scene {
   private readonly TILE_WIDTH = 32; //tile is square
   private readonly TILE_HALF_WIDTH = this.TILE_WIDTH / 2;
 
+  private colliderHandler: ColliderHandler;
   constructor() {
     super("GameScene");
+
+    this.colliderHandler = new ColliderHandler(this);
   }
 
   preload() {
@@ -60,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
       frameHeight: 30,
     });
 
-    this.load.spritesheet("coworker", "assets/coworker-ss.png", {
+    this.load.spritesheet("guard", "assets/guard-ss.png", {
       frameWidth: 30,
       frameHeight: 30,
     });
@@ -127,10 +131,10 @@ export default class GameScene extends Phaser.Scene {
     /**
      * hostiles
      */
-    this.coworkers = [];
+    this.guards = [];
     this.anims.create({
       key: "angry",
-      frames: this.anims.generateFrameNumbers("coworker"),
+      frames: this.anims.generateFrameNumbers("guard"),
       frameRate: 16,
       repeat: -1,
     });
@@ -147,7 +151,7 @@ export default class GameScene extends Phaser.Scene {
      * camera
      */
     //this.cameras.main.setBounds(0, 0, 400, 400);
-    this.cameras.main.setZoom(1.5);
+    this.cameras.main.setZoom(1.4);
 
     // prettier-ignore
     this.cameras.main.centerOn(
@@ -337,24 +341,24 @@ export default class GameScene extends Phaser.Scene {
             continue;
           }
 
-          //add angry coworker
+          //add angry guard
           if (rand <= 1) {
-            const coworker = this.physics.add
+            const guard = this.physics.add
               .sprite(
                 mapOrigin.x + tile.pixelX + this.TILE_HALF_WIDTH,
                 mapOrigin.y + tile.pixelY + this.TILE_HALF_WIDTH,
-                "coworker",
+                "guard",
               )
               .play("angry");
 
             const randDirection = Math.floor(Math.random() * 2);
             const velocity = randDirection == 0 ? -50 : 50;
 
-            coworker.setVelocityX(velocity);
-            coworker.setData("velocity", velocity);
-            coworker.flipX = velocity < 0 ? true : false; //face left : face right
+            guard.setVelocityX(velocity);
+            guard.setData("velocity", velocity);
+            guard.flipX = velocity < 0 ? true : false; //face left : face right
 
-            this.coworkers.push(coworker);
+            this.guards.push(guard);
             continue;
           }
 
@@ -433,91 +437,17 @@ export default class GameScene extends Phaser.Scene {
       this.cameras.main.zoom += 0.1;
     }
 
-    //  Collide man against the tilemap layer
-    this.physics.collide(
-      this.man,
-      this.mapA.layer.tilemapLayer,
-      this.manTileCollide,
-    );
-
-    // man hits coworker
-    this.physics.world.overlap(
-      this.man,
-      this.coworkers,
-      this.manInCoworker,
-      null,
-      this,
-    );
-
-    // man hits screw
-    this.physics.world.overlap(
-      this.man,
-      this.screws,
-      this.manInScrew,
-      null,
-      this,
-    );
-
-    // man hits fire
-    this.physics.world.overlap(
-      this.man,
-      this.fires,
-      this.manInFire,
-      null,
-      this,
-    );
-
-    //TODO: could use map array
-    //coworker hits tiles
-    this.physics.collide(
-      this.coworkers,
-      this.mapA.layer.tilemapLayer,
-      this.coworkerTileCollide,
-    );
-
-    //coworker hits coworker
-    this.physics.world.overlap(
-      this.coworkers,
-      this.coworkers,
-      this.coworkersInCoworkers,
-      null,
-      this,
-    );
-
-    //coworker hits fire
-    this.physics.world.overlap(
-      this.coworkers,
-      this.fires,
-      this.coworkersInFire,
-      null,
-      this,
-    );
-
-    //TODO: remove check
-    if (this.mapB) {
-      this.physics.collide(
-        this.man,
-        this.mapB.layer.tilemapLayer,
-        this.manTileCollide,
-      );
-
-      this.physics.collide(
-        this.coworkers,
-        this.mapB.layer.tilemapLayer,
-        this.coworkerTileCollide,
-      );
-    }
-
     //move camera up with man
     const manCanvasY = this.getRelativePositionToCanvas(
       this.man,
       this.cameras.main,
     );
 
-    //move camera up with man
-    if (manCanvasY.y <= 160) {
-      this.cameras.main.scrollY = this.man.y - 208; //TODO: hmmm
+    if (manCanvasY.y <= 400) {
+      this.cameras.main.scrollY = this.man.y - 400; //working jank code
     }
+
+    this.colliderHandler.handleCollision();
 
     //if needed, make more tiles above
     const currentTopY = this.topMap.tileToWorldXY(0, 0).y;
@@ -565,76 +495,6 @@ export default class GameScene extends Phaser.Scene {
     if (!this.man.visible) return false;
 
     return this.man.body.velocity.x == 0 && this.man.body.velocity.y == 0;
-  }
-
-  private manInCoworker(
-    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    coworker: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-  ) {
-    man.destroy();
-
-    this.setGameText(`The coworker has taken your soul.`);
-  }
-
-  private manInScrew(
-    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    screw: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-  ) {
-    screw.destroy();
-
-    this.numScrewsCollected++;
-
-    this.setGameText(
-      `mmm screws...\ncollected ${this.numScrewsCollected} screws`,
-    );
-  }
-
-  private manInFire(
-    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    fire: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-  ) {
-    man.destroy();
-
-    this.setGameText(`You have died in an office fire.`);
-  }
-
-  private coworkersInFire(
-    coworker: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
-    fire: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
-  ) {
-    coworker.destroy();
-  }
-
-  private manTileCollide(
-    man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    tile: Phaser.Tilemaps.Tile,
-  ) {
-    console.log(`collide tile: ${tile.x},${tile.y} = ${tile.index}`);
-  }
-
-  private coworkerTileCollide(
-    coworker: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
-    tile: Phaser.Tilemaps.Tile,
-  ) {
-    const oldVelocity = coworker.getData("velocity"); //velocity is set to 0 on collision
-    coworker.setVelocityX(-oldVelocity);
-
-    coworker.flipX = -oldVelocity < 0 ? true : false; //face left : face right
-
-    coworker.setData("velocity", -oldVelocity);
-  }
-
-  private coworkersInCoworkers(
-    coworker1: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
-    coworker2: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
-  ) {
-    //only set coworker1 (it's enough)
-    const oldVelocity = coworker1.getData("velocity"); //velocity is set to 0 on collision
-    coworker1.setVelocityX(-oldVelocity);
-
-    coworker1.flipX = -oldVelocity < 0 ? true : false; //face left : face right
-
-    coworker1.setData("velocity", -oldVelocity);
   }
 
   private getRelativePositionToCanvas(
