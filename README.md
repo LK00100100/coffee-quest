@@ -1,17 +1,19 @@
 # tomb-of-the-mask-clone
 
-Tomb of the mask clone.
-
+You are a coder in a big city office.
 You must code and you need coffee. The coffee machine is broken so you must
-wander the office and consume raw coffee beans for caffeine.
+illegally wander the deep inner bowels of the office and find enough machine parts to
+repair the machine. You must dodge various dangers to achieve your mission.
+
+- wsad - move (can't stop)
+
+Inspired by "Tomb of the Mask"
 
 ## Writing Code
 
 `npm install` once.
 
-Then use `npm run watch`
-
-edit files in `src/`
+Then use `npm start` (will reload on changes)
 
 ## etc
 

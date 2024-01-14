@@ -18,19 +18,19 @@ export default class GameScene extends Phaser.Scene {
 
   private man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-  private beans: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
+  private screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private fires: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private coworkers: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   private rats: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
-  private numBeansCollected;
+  private numScrewsCollected;
 
   private readonly PLAYER_SPEED_DEFAULT = 400;
 
   private readonly IS_DEBUG_MODE = false;
 
-  private levelHeight: number = 16;
-  private levelWidth: number = 12;
+  private levelHeight: number = 30;
+  private levelWidth: number = 20;
 
   private readonly TILE_WIDTH = 32; //tile is square
   private readonly TILE_HALF_WIDTH = this.TILE_WIDTH / 2;
@@ -52,6 +52,7 @@ export default class GameScene extends Phaser.Scene {
 
     //powerups
     this.load.image("bean", "assets/bean.png");
+    this.load.image("screw", "assets/screw.png");
 
     //hostiles
     this.load.spritesheet("fire", "assets/fire-ss.png", {
@@ -105,12 +106,11 @@ export default class GameScene extends Phaser.Scene {
     this.man.play("walk");
 
     /**
-     * beans
+     * screws
      */
-    this.beans = [];
-    this.beans.push(this.physics.add.sprite(80, 80, "bean"));
+    this.screws = [];
 
-    this.numBeansCollected = 0;
+    this.numScrewsCollected = 0;
 
     /**
      * fires
@@ -228,14 +228,93 @@ export default class GameScene extends Phaser.Scene {
     return map;
   }
 
+  /**
+   *
+   * @param topY
+   * @param withFloor include a bottom floor or not
+   * @startColumn the startColumn of the player. defaults to 0.
+   * @returns
+   */
+  makeFeasibleTiles(
+    topY: number = 0,
+    withFloor: boolean = false,
+    startColumn = 0,
+  ): Phaser.Tilemaps.Tilemap {
+    /**
+     * make level
+     */
+    const mapData = [];
+    for (let y = 0; y < this.levelHeight; y++) {
+      const row = [];
+
+      for (let x = 0; x < this.levelWidth; x++) {
+        // 16 is space
+        const tileIndex = 1;
+        row.push(tileIndex);
+      }
+
+      //left and right border
+      row[0] = 15;
+      row[this.levelWidth - 1] = 10;
+
+      mapData.push(row);
+    }
+
+    //last, floor row
+    if (withFloor) {
+      const tops = new Array(this.levelWidth - 2).fill(11);
+      mapData[mapData.length - 1] = [6, ...tops, 6];
+    }
+
+    //do the wacky zigzag upward
+    let currentColumn = startColumn;
+    let currentRow = this.levelHeight - 1;
+
+    let isGoVertical = true;
+
+    while (currentRow != 0) {
+      if (isGoVertical) {
+      } else {
+      }
+    }
+
+    const map = this.make.tilemap({
+      data: mapData,
+      tileWidth: this.TILE_WIDTH,
+      tileHeight: this.TILE_WIDTH,
+    });
+    const tileset = map.addTilesetImage(
+      "tiles",
+      null,
+      this.TILE_WIDTH,
+      this.TILE_WIDTH,
+      1,
+      2,
+    ); //margin and spacing for tile bleed
+    const layer = map.createLayer(0, tileset, 0, topY); // layer index, tileset, x, y
+
+    const colors = [0xffcccb, 0x90ee90, 0xadd8e6]; //R,G,B
+    const color = colors[Math.floor(Math.random() * 3)];
+    layer.setTint(color);
+    //TODO: use correct tile art. generate another matrix that holds wasd data and translates that to tiles
+
+    map.setCollisionBetween(0, 15);
+
+    if (this.IS_DEBUG_MODE) {
+      this.showCollision(map);
+    }
+
+    return map;
+  }
+
   addStuffInMap(
     map: Phaser.Tilemaps.Tilemap,
-    numBeans: number = 5,
+    numScrews: number = 5,
     numFires: number = 3,
   ) {
     const mapOrigin = map.tileToWorldXY(0, 0);
 
-    let beansAdded = 0;
+    let screwsAdded = 0;
     //add stuff in empty spaces
     for (let row = 0; row < this.levelHeight; row++) {
       for (let col = 0; col < this.levelWidth; col++) {
@@ -273,6 +352,7 @@ export default class GameScene extends Phaser.Scene {
 
             coworker.setVelocityX(velocity);
             coworker.setData("velocity", velocity);
+            coworker.flipX = velocity < 0 ? true : false; //face left : face right
 
             this.coworkers.push(coworker);
             continue;
@@ -292,16 +372,16 @@ export default class GameScene extends Phaser.Scene {
             continue;
           }
 
-          //add bean
+          //add screw
           if (rand < 5) {
-            this.beans.push(
+            this.screws.push(
               this.physics.add.sprite(
                 mapOrigin.x + tile.pixelX + 16,
                 mapOrigin.y + tile.pixelY + 16,
-                "bean",
+                "screw",
               ),
             );
-            beansAdded++;
+            screwsAdded++;
             continue;
           }
         }
@@ -310,7 +390,7 @@ export default class GameScene extends Phaser.Scene {
     //HACK: to upper limit
   }
 
-  removeOldBeans() {}
+  removeOldScrews() {}
 
   update() {
     //player controls
@@ -369,11 +449,11 @@ export default class GameScene extends Phaser.Scene {
       this,
     );
 
-    // man hits bean
+    // man hits screw
     this.physics.world.overlap(
       this.man,
-      this.beans,
-      this.manInBean,
+      this.screws,
+      this.manInScrew,
       null,
       this,
     );
@@ -460,7 +540,7 @@ export default class GameScene extends Phaser.Scene {
 
       //add stuff
       this.addStuffInMap(this.topMap, 5);
-      this.removeOldBeans();
+      this.removeOldScrews();
 
       //y will goof at -infinity
     }
@@ -496,16 +576,16 @@ export default class GameScene extends Phaser.Scene {
     this.setGameText(`The coworker has taken your soul.`);
   }
 
-  private manInBean(
+  private manInScrew(
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    bean: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    screw: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
-    bean.destroy();
+    screw.destroy();
 
-    this.numBeansCollected++;
+    this.numScrewsCollected++;
 
     this.setGameText(
-      `mmm coffee beans...\nconsumed ${this.numBeansCollected} coffee beans`,
+      `mmm screws...\ncollected ${this.numScrewsCollected} screws`,
     );
   }
 
@@ -539,6 +619,8 @@ export default class GameScene extends Phaser.Scene {
     const oldVelocity = coworker.getData("velocity"); //velocity is set to 0 on collision
     coworker.setVelocityX(-oldVelocity);
 
+    coworker.flipX = -oldVelocity < 0 ? true : false; //face left : face right
+
     coworker.setData("velocity", -oldVelocity);
   }
 
@@ -546,9 +628,11 @@ export default class GameScene extends Phaser.Scene {
     coworker1: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
     coworker2: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody,
   ) {
-    //only set coworker1
+    //only set coworker1 (it's enough)
     const oldVelocity = coworker1.getData("velocity"); //velocity is set to 0 on collision
     coworker1.setVelocityX(-oldVelocity);
+
+    coworker1.flipX = -oldVelocity < 0 ? true : false; //face left : face right
 
     coworker1.setData("velocity", -oldVelocity);
   }

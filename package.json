@@ -4,6 +4,7 @@
     "description": "Tomb of the Mask clone",
     "main": "src/game.ts",
     "scripts": {
+        "start": "npm run watch",
         "dev": "rollup --config rollup.config.dev.mjs",
         "build": "rollup --config rollup.config.dist.mjs",
         "watch": "rollup --watch --config rollup.config.dev.mjs"

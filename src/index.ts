@@ -2,6 +2,7 @@ import GameScene from "./GameScene";
 import * as Phaser from "phaser";
 
 var config = {
+  mode: Phaser.Scale.FIT,
   type: Phaser.AUTO,
   backgroundColor: "#125555",
   physics: {
@@ -10,8 +11,8 @@ var config = {
       debug: true,
     },
   },
-  width: 800,
-  height: 600,
+  width: 1024,
+  height: 800,
   scene: GameScene,
 };
 
