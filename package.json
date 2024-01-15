@@ -1,7 +1,7 @@
 {
-    "name": "tomb-of-the-mask-clone",
+    "name": "coffee-quest",
     "version": "1.2.0",
-    "description": "Tomb of the Mask clone",
+    "description": "Action game like 'Tomb of the Mask'",
     "main": "src/game.ts",
     "scripts": {
         "start": "npm run watch",

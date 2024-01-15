@@ -112,7 +112,7 @@ export default class ColliderHandler {
       return;
     }
 
-    man.destroy();
+    this.game.killMan();
     this.game.setGameText(`The guard has taken your soul.`);
   }
 
@@ -153,7 +153,7 @@ export default class ColliderHandler {
       return;
     }
 
-    man.destroy();
+    this.game.killMan();
     this.game.setGameText(`You have died in an office fire.`);
   }
 

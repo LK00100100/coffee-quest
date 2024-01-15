@@ -6,6 +6,7 @@ export default class GameScene extends Phaser.Scene {
   private keyA: Phaser.Input.Keyboard.Key;
   private keyS: Phaser.Input.Keyboard.Key;
   private keyD: Phaser.Input.Keyboard.Key;
+  private keyR: Phaser.Input.Keyboard.Key;
   private keySpace: Phaser.Input.Keyboard.Key;
   private keyZ: Phaser.Input.Keyboard.Key;
   private keyX: Phaser.Input.Keyboard.Key;
@@ -32,6 +33,7 @@ export default class GameScene extends Phaser.Scene {
   public man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   public isManInvincible: boolean;
   public manNumPizzas: number;
+  public isDead: boolean;
 
   public pizzas: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
@@ -45,8 +47,8 @@ export default class GameScene extends Phaser.Scene {
 
   private readonly IS_DEBUG_MODE = false;
 
-  private levelHeight: number = 30;
-  private levelWidth: number = 20;
+  private readonly levelHeight: number = 30;
+  private readonly levelWidth: number = 20;
 
   private readonly TILE_WIDTH = 32; //tile is square
   private readonly TILE_HALF_WIDTH = this.TILE_WIDTH / 2;
@@ -95,10 +97,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
-    this.mapA = this.makeTiles(0, true);
-    this.mapB = this.makeTiles(-10000, true); //init so we don't null check.
-    this.topMap = this.mapA;
-
+    this.resetGame();
     /**
      * keyboard
      */
@@ -106,6 +105,8 @@ export default class GameScene extends Phaser.Scene {
     this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
     this.keySpace = this.input.keyboard.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE,
     );
@@ -114,10 +115,9 @@ export default class GameScene extends Phaser.Scene {
     this.keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     /**
-     * man / coder
+     * entities
      */
-    this.manNumPizzas = 2;
-    this.isManInvincible = false;
+
     this.anims.create({
       key: "walk",
       frames: this.anims.generateFrameNumbers("man"),
@@ -125,28 +125,19 @@ export default class GameScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.man = this.physics.add.sprite(
-      48,
-      this.levelHeight * this.TILE_WIDTH -
-        (this.TILE_WIDTH + this.TILE_HALF_WIDTH),
-      "man",
-    );
-    this.man.depth = 10;
-    this.man.play("walk");
+    this.anims.create({
+      key: "angry",
+      frames: this.anims.generateFrameNumbers("guard"),
+      frameRate: 16,
+      repeat: -1,
+    });
 
-    /**
-     * powerups and pickups
-     */
-    this.screws = [];
-
-    this.numScrewsCollected = 0;
-
-    this.pizzas = [];
-
-    /**
-     * fires
-     */
-    this.fires = [];
+    this.anims.create({
+      key: "move",
+      frames: this.anims.generateFrameNumbers("rat"),
+      frameRate: 16,
+      repeat: -1,
+    });
 
     this.anims.create({
       key: "burn",
@@ -156,40 +147,8 @@ export default class GameScene extends Phaser.Scene {
     });
 
     /**
-     * hostiles
-     */
-    this.guards = [];
-    this.anims.create({
-      key: "angry",
-      frames: this.anims.generateFrameNumbers("guard"),
-      frameRate: 16,
-      repeat: -1,
-    });
-
-    this.rats = [];
-    this.anims.create({
-      key: "move",
-      frames: this.anims.generateFrameNumbers("rat"),
-      frameRate: 16,
-      repeat: -1,
-    });
-
-    /**
-     * camera
-     */
-    //this.cameras.main.setBounds(0, 0, 400, 400);
-    this.cameras.main.setZoom(1.4);
-
-    // prettier-ignore
-    this.cameras.main.centerOn(
-      this.levelWidth * this.TILE_HALF_WIDTH, //go half way
-      (this.levelHeight * this.TILE_WIDTH) + this.TILE_HALF_WIDTH,
-    );
-
-    /**
      * ui elements
      */
-    this.doUpdateUi = true;
     // prettier-ignore
     this.gameText = this.add
       .text((this.levelWidth * this.TILE_HALF_WIDTH) - 150, 130, "test text 3")
@@ -215,6 +174,73 @@ export default class GameScene extends Phaser.Scene {
       .sprite(180, 630, "pizza")
       .setDepth(100)
       .setScrollFactor(0);
+
+    this.resetGame();
+  }
+
+  /**
+   * Resets everything to the beginning.
+   */
+  resetGame() {
+    this.destroyAllSprites();
+    this.doUpdateUi = true;
+
+    this.mapA = this.makeTiles(0, true);
+    this.mapB = this.makeTiles(-10000, true); //init so we don't null check.
+    this.topMap = this.mapA;
+
+    /**
+     * man / coder
+     */
+    this.numScrewsCollected = 0;
+    this.manNumPizzas = 2;
+    this.isManInvincible = false;
+    this.isDead = false;
+
+    this.man = this.physics.add.sprite(
+      48,
+      this.levelHeight * this.TILE_WIDTH -
+        (this.TILE_WIDTH + this.TILE_HALF_WIDTH),
+      "man",
+    );
+    this.man.setDepth(10);
+    this.man.play("walk");
+
+    /**
+     * entities, powerups, and pickups
+     */
+    this.screws = [];
+    this.pizzas = [];
+
+    this.fires = [];
+    this.guards = [];
+    this.rats = [];
+
+    /**
+     * camera
+     */
+    //this.cameras.main.setBounds(0, 0, 400, 400);
+    this.cameras.main.setZoom(1.4);
+
+    // prettier-ignore
+    this.cameras.main.centerOn(
+      this.levelWidth * this.TILE_HALF_WIDTH, //go half way
+      (this.levelHeight * this.TILE_WIDTH) + this.TILE_HALF_WIDTH,
+    );
+  }
+
+  destroyAllSprites() {
+    this.mapA?.destroy();
+    this.mapB?.destroy();
+
+    this.man?.destroy();
+
+    this.screws?.forEach((s) => s.destroy());
+    this.pizzas?.forEach((s) => s.destroy());
+
+    this.fires?.forEach((s) => s.destroy());
+    this.guards?.forEach((s) => s.destroy());
+    this.rats?.forEach((s) => s.destroy());
   }
 
   /**
@@ -474,6 +500,10 @@ export default class GameScene extends Phaser.Scene {
   }
 
   manEatPizza() {
+    if (this.isDead) {
+      return;
+    }
+
     if (this.isManInvincible) {
       this.setGameText("you are still full");
       return;
@@ -522,6 +552,10 @@ export default class GameScene extends Phaser.Scene {
         this.man.setVelocityX(this.PLAYER_SPEED_DEFAULT);
         this.man.setVelocityY(0);
       }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
+      this.resetGame();
     }
 
     if (this.keyZ.isDown) {
@@ -584,6 +618,14 @@ export default class GameScene extends Phaser.Scene {
    */
   setGameText(newText: string) {
     this.gameText.text = newText;
+  }
+
+  /**
+   * Kill the man (and sprite)
+   */
+  killMan() {
+    this.man.destroy();
+    this.isDead = true;
   }
 
   /**
