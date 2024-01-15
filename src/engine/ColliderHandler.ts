@@ -113,7 +113,7 @@ export default class ColliderHandler {
     }
 
     this.game.killMan();
-    this.game.setGameText(`The guard has taken your soul.`);
+    this.game.setGameText(`The guard has taken your soul. (R)estart`);
   }
 
   private collideManInScrew(
@@ -149,12 +149,12 @@ export default class ColliderHandler {
     if (this.game.isManInvincible) {
       fire.destroy();
       this.game.toggleManInvincibility(false);
-      this.game.setGameText(`You run through an office fire.`);
+      this.game.setGameText(`You ran through an office fire.`);
       return;
     }
 
     this.game.killMan();
-    this.game.setGameText(`You have died in an office fire.`);
+    this.game.setGameText(`You have died in an office fire. (R)estart`);
   }
 
   private collideGuardInFire(

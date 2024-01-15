@@ -95,6 +95,7 @@ export default class GameScene extends Phaser.Scene {
 
     //misc
     this.load.image("bean", "assets/bean.png");
+    this.load.image("coffee-machine", "assets/coffee-machine.png");
   }
 
   // Runs once, after all assets in preload are loaded
@@ -119,6 +120,7 @@ export default class GameScene extends Phaser.Scene {
     /**
      * entities
      */
+    this.add.sprite(48, 896, "coffee-machine").setDepth(10);
 
     this.anims.create({
       key: "walk",
@@ -151,9 +153,12 @@ export default class GameScene extends Phaser.Scene {
     /**
      * ui elements
      */
-    // prettier-ignore
     this.gameText = this.add
-      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 150, 130, "test text 3")
+      .text(
+        this.levelWidth * this.TILE_HALF_WIDTH - 150,
+        130,
+        "Hmm... coffee machine is broken. I can fix that.",
+      )
       .setDepth(100)
       .setScrollFactor(0);
 
@@ -187,6 +192,8 @@ export default class GameScene extends Phaser.Scene {
     this.destroyAllSprites();
     this.doUpdateUi = true;
 
+    this.setGameText("Hmm... coffee machine is broken. I can fix that.");
+
     this.mapA = this.makeTiles(0, true);
     this.mapB = this.makeTiles(-10000, true); //init so we don't null check.
     this.topMap = this.mapA;
@@ -200,7 +207,7 @@ export default class GameScene extends Phaser.Scene {
     this.isDead = false;
 
     this.man = this.physics.add.sprite(
-      48,
+      80,
       this.levelHeight * this.TILE_WIDTH -
         (this.TILE_WIDTH + this.TILE_HALF_WIDTH),
       "man",
@@ -620,7 +627,7 @@ export default class GameScene extends Phaser.Scene {
    * @param newText
    */
   setGameText(newText: string) {
-    this.gameText.text = newText;
+    this.gameText?.setText(newText);
   }
 
   /**
