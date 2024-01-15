@@ -6,8 +6,9 @@ export default class GameScene extends Phaser.Scene {
   private keyA: Phaser.Input.Keyboard.Key;
   private keyS: Phaser.Input.Keyboard.Key;
   private keyD: Phaser.Input.Keyboard.Key;
-  private keyQ: Phaser.Input.Keyboard.Key;
-  private keyE: Phaser.Input.Keyboard.Key;
+  private keySpace: Phaser.Input.Keyboard.Key;
+  private keyZ: Phaser.Input.Keyboard.Key;
+  private keyX: Phaser.Input.Keyboard.Key;
 
   /**
    * ui elements
@@ -105,14 +106,17 @@ export default class GameScene extends Phaser.Scene {
     this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
     this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keySpace = this.input.keyboard.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SPACE,
+    );
 
-    this.keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
-    this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+    this.keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
     /**
      * man / coder
      */
-    this.manNumPizzas = 0;
+    this.manNumPizzas = 2;
     this.isManInvincible = false;
     this.anims.create({
       key: "walk",
@@ -458,7 +462,41 @@ export default class GameScene extends Phaser.Scene {
 
   removeOldScrews() {}
 
+  toggleManInvincibility(toggle: boolean) {
+    if (toggle) {
+      this.man.setTint(0xd2042d);
+      this.isManInvincible = true;
+      return;
+    }
+
+    this.isManInvincible = false;
+    this.man.clearTint();
+  }
+
+  manEatPizza() {
+    if (this.isManInvincible) {
+      this.setGameText("you are still full");
+      return;
+    }
+
+    if (this.manNumPizzas == 0) {
+      return;
+    }
+
+    this.manNumPizzas--; //note: could make method and link this to doUpdateUi
+
+    this.toggleManInvincibility(true);
+
+    this.setGameText("you have eaten bougie $15 pizza and feel unstoppable");
+
+    this.doUpdateUi = true;
+  }
+
   update() {
+    if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+      this.manEatPizza();
+    }
+
     //player controls
     if (this.isManReadyToMove()) {
       //fix rounding errors, or you'll collide in thin hallways
@@ -490,11 +528,11 @@ export default class GameScene extends Phaser.Scene {
       }
     }
 
-    if (this.keyQ.isDown) {
+    if (this.keyZ.isDown) {
       this.setGameText("q");
       this.cameras.main.zoom -= 0.1;
     }
-    if (this.keyE.isDown) {
+    if (this.keyX.isDown) {
       this.setGameText("e");
       this.cameras.main.zoom += 0.1;
     }

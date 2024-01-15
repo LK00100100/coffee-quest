@@ -105,8 +105,14 @@ export default class ColliderHandler {
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     guard: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
-    man.destroy();
+    if (this.game.isManInvincible) {
+      guard.destroy();
+      this.game.setGameText(`You have pummeled a guard and feel tired.`);
+      this.game.toggleManInvincibility(false);
+      return;
+    }
 
+    man.destroy();
     this.game.setGameText(`The guard has taken your soul.`);
   }
 
@@ -140,8 +146,14 @@ export default class ColliderHandler {
     man: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     fire: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
-    man.destroy();
+    if (this.game.isManInvincible) {
+      fire.destroy();
+      this.game.toggleManInvincibility(false);
+      this.game.setGameText(`You run through an office fire.`);
+      return;
+    }
 
+    man.destroy();
     this.game.setGameText(`You have died in an office fire.`);
   }
 
