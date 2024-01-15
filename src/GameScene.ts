@@ -9,7 +9,15 @@ export default class GameScene extends Phaser.Scene {
   private keyQ: Phaser.Input.Keyboard.Key;
   private keyE: Phaser.Input.Keyboard.Key;
 
+  /**
+   * ui elements
+   */
   private gameText!: Phaser.GameObjects.Text; //any messages for the player to read.
+  private uiNumScrewsText!: Phaser.GameObjects.Text;
+  private uiNumPizzasText!: Phaser.GameObjects.Text;
+  private uiScrewsSprite: Phaser.GameObjects.Sprite;
+  private uiPizzasSprite: Phaser.GameObjects.Sprite;
+  public doUpdateUi: boolean;
 
   //these are two maps that are placed one on top of the other. ad nauseam
   //we only go upwards
@@ -17,7 +25,12 @@ export default class GameScene extends Phaser.Scene {
   public mapB: Phaser.Tilemaps.Tilemap;
   private topMap: Phaser.Tilemaps.Tilemap;
 
+  /**
+   * man variables
+   */
   public man: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+  public isManInvincible: boolean;
+  public manNumPizzas: number;
 
   public pizzas: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public screws: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
@@ -25,7 +38,7 @@ export default class GameScene extends Phaser.Scene {
   public guards: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
   public rats: Array<Phaser.Types.Physics.Arcade.SpriteWithDynamicBody>;
 
-  public numScrewsCollected;
+  public numScrewsCollected: number;
 
   private readonly PLAYER_SPEED_DEFAULT = 400;
 
@@ -46,7 +59,8 @@ export default class GameScene extends Phaser.Scene {
 
   preload() {
     //level
-    this.load.tilemapCSV("map", "assets/tiles.csv");
+    //this.load.tilemapCSV("map", "assets/tiles.csv");
+    //image is adjusted so the borders don't bleed through
     this.load.image("tiles", "assets/tiles2.png");
 
     //people
@@ -96,8 +110,10 @@ export default class GameScene extends Phaser.Scene {
     this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     /**
-     * person
+     * man / coder
      */
+    this.manNumPizzas = 0;
+    this.isManInvincible = false;
     this.anims.create({
       key: "walk",
       frames: this.anims.generateFrameNumbers("man"),
@@ -166,9 +182,33 @@ export default class GameScene extends Phaser.Scene {
       (this.levelHeight * this.TILE_WIDTH) + this.TILE_HALF_WIDTH,
     );
 
+    /**
+     * ui elements
+     */
+    this.doUpdateUi = true;
     // prettier-ignore
     this.gameText = this.add
-      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 100, 130, "test text")
+      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 150, 130, "test text")
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    this.uiNumScrewsText = this.add
+      .text(200, 650, "")
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    this.uiScrewsSprite = this.add
+      .sprite(180, 650, "screw")
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    this.uiNumPizzasText = this.add
+      .text(200, 630, "")
+      .setDepth(100)
+      .setScrollFactor(0);
+
+    this.uiPizzasSprite = this.add
+      .sprite(180, 630, "pizza")
       .setDepth(100)
       .setScrollFactor(0);
   }
@@ -362,7 +402,7 @@ export default class GameScene extends Phaser.Scene {
               .play("angry");
 
             const randDirection = Math.floor(Math.random() * 2);
-            const velocity = randDirection == 0 ? -50 : 50;
+            const velocity = randDirection == 0 ? -80 : 80;
 
             guard.setVelocityX(velocity);
             guard.setData("velocity", velocity);
@@ -495,6 +535,14 @@ export default class GameScene extends Phaser.Scene {
       this.removeOldScrews();
 
       //y will goof at -infinity
+    }
+    /**
+     *  ui stuff
+     */
+    if (this.doUpdateUi) {
+      this.doUpdateUi = false;
+      this.uiNumPizzasText.setText(`${this.manNumPizzas}`);
+      this.uiNumScrewsText.setText(`${this.numScrewsCollected}`);
     }
   }
 

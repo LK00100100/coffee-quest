@@ -1,7 +1,7 @@
 import GameScene from "../GameScene";
 
 /**
- * Handles collisions between entities.
+ * Handles collisions between entities for GameScene
  */
 export default class ColliderHandler {
   game: GameScene;
@@ -117,6 +117,7 @@ export default class ColliderHandler {
     screw.destroy();
 
     this.game.numScrewsCollected++;
+    this.game.doUpdateUi = true;
 
     this.game.setGameText(
       `mmm screws...\ncollected ${this.game.numScrewsCollected} screws`,
@@ -128,6 +129,9 @@ export default class ColliderHandler {
     pizza: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ) {
     pizza.destroy();
+
+    this.game.manNumPizzas++;
+    this.game.doUpdateUi = true;
 
     this.game.setGameText(`mmm bougie $15 Big City personal pizza...`);
   }
