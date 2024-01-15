@@ -1,18 +1,20 @@
-# tomb-of-the-mask-clone
+# Coffee Quest
 
 You are a coder in a Big City office.
-You must code and you need coffee. The coffee machine is broken so you must
-illegally wander the deep inner bowels of the office and find enough machine parts to repair the machine. You must dodge various dangers to achieve your mission.
+You must code and you need coffee. The coffee machine is broken so you must illegally wander the deep inner bowels of the office and find enough machine parts to repair the machine. You must dodge various dangers to achieve your mission.
+
+A simple action game.
 
 ## controls
 - wsad - move (can't stop)
 - space - eat pizza
-- z,x - camera zoom
+- z,x - camera zoom (for debugging)
 
 ## game
 - security guard - stops you
-- rats - friendly; scares security.
-- $15 Big City Personal Pizza - temporarily makes you immune to everything.
+- rats - friendly to you; scares security.
+- fire - bad for everyone
+- $15 Big City Personal Pizza - temporary invincibility
 
 Inspired by "Tomb of the Mask"
 
