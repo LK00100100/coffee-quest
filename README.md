@@ -22,6 +22,10 @@ Inspired by "Tomb of the Mask"
 
 Then use `npm start` (will reload on changes)
 
+The `npm deploy` doesn't work when I'm using Windows 🤔
+
+Deploy using `./scripts/deploy-to-s3.sh`.
+
 ## etc
 
 `npm run build` - make prod build (minificiation, no source maps, etc).

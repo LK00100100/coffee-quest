@@ -192,7 +192,7 @@ export default class GameScene extends Phaser.Scene {
     this.doUpdateUi = true;
     // prettier-ignore
     this.gameText = this.add
-      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 150, 130, "test text")
+      .text((this.levelWidth * this.TILE_HALF_WIDTH) - 150, 130, "test text 3")
       .setDepth(100)
       .setScrollFactor(0);
 
@@ -504,36 +504,30 @@ export default class GameScene extends Phaser.Scene {
       this.man.y = Math.round(this.man.y);
 
       if (Phaser.Input.Keyboard.JustDown(this.keyW)) {
-        this.setGameText("w");
         this.man.setVelocityX(0);
         this.man.setVelocityY(-this.PLAYER_SPEED_DEFAULT);
       }
 
       if (Phaser.Input.Keyboard.JustDown(this.keyA)) {
-        this.setGameText("a");
         this.man.setVelocityX(-this.PLAYER_SPEED_DEFAULT);
         this.man.setVelocityY(0);
       }
 
       if (Phaser.Input.Keyboard.JustDown(this.keyS)) {
-        this.setGameText("s");
         this.man.setVelocityX(0);
         this.man.setVelocityY(this.PLAYER_SPEED_DEFAULT);
       }
 
       if (Phaser.Input.Keyboard.JustDown(this.keyD)) {
-        this.setGameText("d");
         this.man.setVelocityX(this.PLAYER_SPEED_DEFAULT);
         this.man.setVelocityY(0);
       }
     }
 
     if (this.keyZ.isDown) {
-      this.setGameText("q");
       this.cameras.main.zoom -= 0.1;
     }
     if (this.keyX.isDown) {
-      this.setGameText("e");
       this.cameras.main.zoom += 0.1;
     }
 
@@ -585,6 +579,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Set game message for display.
    * @param newText
    */
   setGameText(newText: string) {
@@ -600,7 +595,9 @@ export default class GameScene extends Phaser.Scene {
   }
 
   private isManReadyToMove(): boolean {
-    if (!this.man.visible) return false;
+    if (!this.man.visible) {
+      return false;
+    }
 
     return this.man.body.velocity.x == 0 && this.man.body.velocity.y == 0;
   }

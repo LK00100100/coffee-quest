@@ -1,5 +1,6 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import del from 'rollup-plugin-delete'
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
@@ -23,6 +24,9 @@ export default {
     },
 
     plugins: [
+
+        // this map is 11+ mbs
+        del({ targets: 'dist/index.js.map' }),
 
         //  Toggle the booleans here to enable / disable Phaser 3 features:
         replace({

@@ -194,7 +194,7 @@ export default class ColliderHandler {
   }
 
   /**
-   * Flip guard horizontally
+   * Flip guard horizontally and its velocity.
    * @param guard -
    */
   flipGuardDirection(guard: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
