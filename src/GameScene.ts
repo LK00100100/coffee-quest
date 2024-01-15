@@ -60,6 +60,7 @@ export default class GameScene extends Phaser.Scene {
     this.colliderHandler = new ColliderHandler(this);
   }
 
+  // Runs once, loads assets
   preload() {
     //level
     //this.load.tilemapCSV("map", "assets/tiles.csv");
@@ -96,6 +97,7 @@ export default class GameScene extends Phaser.Scene {
     this.load.image("bean", "assets/bean.png");
   }
 
+  // Runs once, after all assets in preload are loaded
   create() {
     this.resetGame();
     /**
@@ -522,6 +524,7 @@ export default class GameScene extends Phaser.Scene {
     this.doUpdateUi = true;
   }
 
+  // Runs once per frame for the duration of the scene
   update() {
     if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
       this.manEatPizza();

@@ -35,3 +35,5 @@ Deploy using `./scripts/deploy-to-s3.sh`.
 `npm run dev` - build project, open server, don't watch for changes.
 
 [phaser starter template](https://github.com/photonstorm/phaser3-typescript-project-template)
+
+Tile bleed problem? [link](https://stackoverflow.com/questions/62936847/how-do-i-stop-my-tiles-from-bleeding-when-using-a-tilemap-in-phaser-3)
