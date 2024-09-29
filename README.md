@@ -1,9 +1,13 @@
 # Coffee Quest
 
+[Play here](https://sbs-game-coffee-quest.s3.amazonaws.com/index.html)
+
 You are a coder in a Big City office.
 You must code and you need coffee. The coffee machine is broken so you must illegally wander the deep inner bowels of the office and find enough machine parts to repair the machine. You must dodge various dangers to achieve your mission.
 
 A simple action game.
+
+
 
 ## controls
 - wsad - move (can't stop)
