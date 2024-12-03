@@ -5,6 +5,8 @@ You must code and you need coffee. The coffee machine is broken so you must ille
 
 A simple action game.
 
+![alt text](https://raw.githubusercontent.com/LK00100100/coffee-quest/master/coffee-quest-screenshot.png "Screenshot")
+
 ## controls
 - wsad - move (can't stop)
 - space - eat pizza
